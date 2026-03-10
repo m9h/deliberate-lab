@@ -121,9 +121,10 @@ export async function getFirestoreActiveMediators(
   ).docs
     .map((doc) => doc.data() as MediatorProfileExtended)
     .filter(
-      (participant) =>
-        participant.currentStatus === MediatorStatus.ACTIVE &&
-        (checkIsAgent ? participant.agentConfig : true),
+      (mediator) =>
+        mediator.currentStatus === MediatorStatus.ACTIVE &&
+        (checkIsAgent ? mediator.agentConfig : true) &&
+        (stageId ? mediator.activeStageMap?.[stageId] : true),
     );
   return activeMediators;
 }

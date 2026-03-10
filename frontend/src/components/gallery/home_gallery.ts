@@ -26,6 +26,7 @@ import {
   getQuickstartGroupChatTemplate,
 } from '../../shared/templates/quickstart_group_chat';
 import {getQuickstartPrivateChatTemplate} from '../../shared/templates/quickstart_private_chat';
+import {getThinkingHigherTemplate} from '../../shared/templates/thinking_higher';
 
 import {styles} from './home_gallery.scss';
 
@@ -259,6 +260,16 @@ export class QuickStartGallery extends MobxLitElement {
           >
             <pr-icon icon="groups" color="neutral" size="large"></pr-icon>
             <div>Group chat with<br />no agents</div>
+          </div>
+          <div
+            class="quick-start-card"
+            @click=${() => {
+              this.routerService.navigate(Pages.EXPERIMENT_CREATE);
+              this.experimentEditor.loadTemplate(getThinkingHigherTemplate());
+            }}
+          >
+            <pr-icon icon="psychology" color="neutral" size="large"></pr-icon>
+            <div>Thinking Higher<br />workplace sim</div>
           </div>
         </div>
       </div>

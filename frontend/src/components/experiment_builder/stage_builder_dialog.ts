@@ -93,6 +93,10 @@ import {
   BookClubConfig,
   createBookClubConfig,
 } from '../../shared/templates/transfer_conditions_template';
+import {
+  THINKING_HIGHER_METADATA,
+  getThinkingHigherTemplate,
+} from '../../shared/templates/thinking_higher';
 
 import {styles} from './stage_builder_dialog.scss';
 
@@ -187,7 +191,7 @@ export class StageBuilderDialog extends MobxLitElement {
         ${this.renderStockInfoGameCard()}
         ${this.renderAssetAllocationTemplateCard()}
         ${this.renderPolicyTemplateCard()} ${this.renderAgentIntegrationCard()}
-        ${this.renderBookClubTemplateCard()}
+        ${this.renderThinkingHigherCard()} ${this.renderBookClubTemplateCard()}
       </div>
       ${this.authService.hasResearchTemplateAccess
         ? this.renderResearchTemplateGallery()
@@ -318,6 +322,18 @@ export class StageBuilderDialog extends MobxLitElement {
       <div class="card" @click=${addTemplate}>
         <div class="title">${INTEGRATION_METADATA.name}</div>
         <div>${INTEGRATION_METADATA.description}</div>
+      </div>
+    `;
+  }
+
+  private renderThinkingHigherCard() {
+    const addTemplate = () => {
+      this.addTemplate(getThinkingHigherTemplate());
+    };
+    return html`
+      <div class="card" @click=${addTemplate}>
+        <div class="title">${THINKING_HIGHER_METADATA.name}</div>
+        <div>${THINKING_HIGHER_METADATA.description}</div>
       </div>
     `;
   }

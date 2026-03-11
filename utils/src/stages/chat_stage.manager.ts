@@ -53,6 +53,7 @@ export class GroupChatStageHandler extends BaseStageHandler {
       return '';
     };
     // Get participant names (from all active participants)
+    // Include color to disambiguate participants with the same animal alias
     const participantNames = stageContext.participants.map((participant) =>
       getNameFromPublicId(
         [participant],
@@ -60,6 +61,7 @@ export class GroupChatStageHandler extends BaseStageHandler {
         getProfileSetId(),
         true,
         true,
+        true, // includeColor
       ),
     );
 

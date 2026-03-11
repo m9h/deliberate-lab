@@ -307,6 +307,7 @@ export function getNameFromPublicId(
   profileSetId: string, // leave empty to use default profile
   includeAvatar = true,
   includePronouns = false,
+  includeColor = false,
 ) {
   const profile = participants.find((p) => p.publicId === publicId);
   if (!profile) return publicId;
@@ -315,7 +316,23 @@ export function getNameFromPublicId(
     profileSetId,
     includeAvatar,
     includePronouns,
+    includeColor,
   );
+}
+
+/**
+ * Extract the color component from a participant's publicId.
+ * PublicId format: "name-color-number" (e.g., "otter-red-4521").
+ * Returns the capitalized color (e.g., "Red") or empty string if not found.
+ */
+export function getParticipantColor(publicId: string): string {
+  const lowerColors = COLORS.map((c) => c.toLowerCase());
+  const parts = publicId.toLowerCase().split('-');
+  for (const part of parts) {
+    const idx = lowerColors.indexOf(part);
+    if (idx !== -1) return COLORS[idx];
+  }
+  return '';
 }
 
 export function getParticipantDisplayName(
@@ -323,6 +340,7 @@ export function getParticipantDisplayName(
   profileSetId: string, // leave empty to use default profile
   includeAvatar = true,
   includePronouns = false,
+  includeColor = false,
 ) {
   // If profile set ID specified, use the corresponding anonymous profile
   const profileName = profileSetId
@@ -335,9 +353,11 @@ export function getParticipantDisplayName(
 
   if (profile && profileName) {
     const avatar = includeAvatar && profileAvatar ? `${profileAvatar} ` : '';
+    const color = includeColor ? getParticipantColor(profile.publicId) : '';
+    const colorPrefix = color ? `${color} ` : '';
     const pronouns =
       includePronouns && profilePronouns ? ` (${profilePronouns})` : '';
-    return `${avatar}${profileName}${pronouns}`;
+    return `${avatar}${colorPrefix}${profileName}${pronouns}`;
   }
   return profile.publicId;
 }

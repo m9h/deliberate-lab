@@ -4,7 +4,11 @@ import {
   createAgentChatSettings,
   createModelGenerationConfig,
 } from '../agent';
-import {ParticipantProfileBase, UserType} from '../participant';
+import {
+  ParticipantProfileBase,
+  UserType,
+  getParticipantColor,
+} from '../participant';
 import {getParticipantProfilePromptContext} from '../participant.prompts';
 import {convertUnifiedTimestampToTime} from '../shared';
 import {
@@ -65,7 +69,11 @@ export function convertChatMessageToPromptFormat(message: ChatMessage) {
   if (message.type === UserType.SYSTEM) {
     return `${convertUnifiedTimestampToTime(message.timestamp)} [SYSTEM]: ${message.message}`;
   }
-  return `${convertUnifiedTimestampToTime(message.timestamp)} ${message.profile.name ?? message.senderId}: ${message.message}`;
+  // Include color from senderId to disambiguate participants with the same name
+  const color = getParticipantColor(message.senderId);
+  const colorPrefix = color ? `${color} ` : '';
+  const name = message.profile.name ?? message.senderId;
+  return `${convertUnifiedTimestampToTime(message.timestamp)} ${colorPrefix}${name}: ${message.message}`;
 }
 
 /** Convert chat messages into chat history string for prompt. */

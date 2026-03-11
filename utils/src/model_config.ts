@@ -55,11 +55,33 @@ export const VERTEX_AI_MODELS: ModelOption[] = [
 
 /**
  * Suggested OpenAI models.
+ * Includes OpenAI-compatible providers (Groq, OpenRouter, etc.)
+ * when a custom base URL is configured.
  */
 export const OPENAI_MODELS: ModelOption[] = [
   {
     id: 'gpt-5-mini',
     displayName: 'GPT-5 mini',
+    apiType: ApiKeyType.OPENAI_API_KEY,
+  },
+  {
+    id: 'qwen/qwen3-32b',
+    displayName: 'Qwen 3 32B (Groq)',
+    apiType: ApiKeyType.OPENAI_API_KEY,
+  },
+  {
+    id: 'llama-3.3-70b-versatile',
+    displayName: 'Llama 3.3 70B (Groq)',
+    apiType: ApiKeyType.OPENAI_API_KEY,
+  },
+  {
+    id: 'llama-3.1-8b-instant',
+    displayName: 'Llama 3.1 8B Instant (Groq)',
+    apiType: ApiKeyType.OPENAI_API_KEY,
+  },
+  {
+    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    displayName: 'Llama 4 Scout 17B (Groq)',
     apiType: ApiKeyType.OPENAI_API_KEY,
   },
 ];

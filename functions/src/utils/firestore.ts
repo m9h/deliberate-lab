@@ -20,7 +20,78 @@ import {app} from '../app';
 
 /** Utils functions for handling Firestore docs. */
 
-/** Get experimenter data. */
+/**
+ * Get default API keys from the settings/defaultApiKeys document.
+ * Returns undefined if no default keys are configured.
+ */
+async function getDefaultApiKeys(): Promise<
+  ExperimenterData['apiKeys'] | undefined
+> {
+  try {
+    const doc = await app
+      .firestore()
+      .collection('settings')
+      .doc('defaultApiKeys')
+      .get();
+    if (!doc.exists) return undefined;
+    return doc.data() as ExperimenterData['apiKeys'];
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Merge default API keys into experimenter data as a fallback.
+ * Only fills in keys the experimenter hasn't set themselves.
+ */
+function mergeApiKeysWithDefaults(
+  experimenterKeys: ExperimenterData['apiKeys'],
+  defaultKeys: ExperimenterData['apiKeys'],
+): ExperimenterData['apiKeys'] {
+  const merged = {...experimenterKeys};
+
+  // Gemini: fall back if empty string
+  if (!merged.geminiApiKey && defaultKeys.geminiApiKey) {
+    merged.geminiApiKey = defaultKeys.geminiApiKey;
+  }
+
+  // OpenAI: fall back if no key and no base URL set
+  if (
+    !merged.openAIApiKey?.apiKey &&
+    !merged.openAIApiKey?.baseUrl &&
+    (defaultKeys.openAIApiKey?.apiKey || defaultKeys.openAIApiKey?.baseUrl)
+  ) {
+    merged.openAIApiKey = defaultKeys.openAIApiKey;
+  }
+
+  // Claude: fall back if no key and no base URL set
+  if (
+    !merged.claudeApiKey?.apiKey &&
+    !merged.claudeApiKey?.baseUrl &&
+    (defaultKeys.claudeApiKey?.apiKey || defaultKeys.claudeApiKey?.baseUrl)
+  ) {
+    merged.claudeApiKey = defaultKeys.claudeApiKey;
+  }
+
+  // Vertex AI: fall back if no config set
+  if (
+    !merged.vertexAIConfig?.apiKey &&
+    !merged.vertexAIConfig?.serviceAccountJson
+  ) {
+    if (defaultKeys.vertexAIConfig) {
+      merged.vertexAIConfig = defaultKeys.vertexAIConfig;
+    }
+  }
+
+  // Ollama: fall back if no URL set
+  if (!merged.ollamaApiKey?.url && defaultKeys.ollamaApiKey?.url) {
+    merged.ollamaApiKey = defaultKeys.ollamaApiKey;
+  }
+
+  return merged;
+}
+
+/** Get experimenter data, with fallback to default API keys. */
 export async function getExperimenterData(creatorId: string) {
   const creatorDoc = await app
     .firestore()
@@ -30,6 +101,29 @@ export async function getExperimenterData(creatorId: string) {
   const experimenterData = creatorDoc.exists
     ? (creatorDoc.data() as ExperimenterData)
     : undefined;
+
+  // If no experimenter data at all, construct minimal data with default keys
+  if (!experimenterData) {
+    const defaultKeys = await getDefaultApiKeys();
+    if (!defaultKeys) return undefined;
+    return {
+      id: creatorId,
+      email: creatorId,
+      apiKeys: defaultKeys,
+      viewedExperiments: [],
+      showAlphaFeatures: false,
+    } as ExperimenterData;
+  }
+
+  // Merge default keys as fallback for any keys the experimenter hasn't set
+  const defaultKeys = await getDefaultApiKeys();
+  if (defaultKeys) {
+    experimenterData.apiKeys = mergeApiKeysWithDefaults(
+      experimenterData.apiKeys,
+      defaultKeys,
+    );
+  }
+
   return experimenterData;
 }
 

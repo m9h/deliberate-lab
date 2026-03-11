@@ -14,6 +14,12 @@ import {
   createStageProgressConfig,
   createStageTextConfig,
   createDefaultPromptFromText,
+  createSurveyStage,
+  createScaleSurveyQuestion,
+  createTextSurveyQuestion,
+  createMultipleChoiceSurveyQuestion,
+  createMultipleChoiceItem,
+  MultipleChoiceDisplayType,
   AgentMediatorTemplate,
   AgentParticipantTemplate,
   ExperimentTemplate,
@@ -46,6 +52,7 @@ const MARCUS_CHAT_ID = 'chat-marcus';
 const ALEX_CHAT_ID = 'chat-alex';
 const SARAH_CHAT_ID = 'chat-sarah';
 const ASSESSMENT_CHAT_ID = 'chat-assessment';
+const FEEDBACK_SURVEY_ID = 'feedback-survey';
 
 // ****************************************************************************
 // Terms of Service
@@ -163,33 +170,137 @@ const GROUP_STANDUP_SARAH =
   'Be warm but focused. Ask if there are any blockers the team should know about.';
 
 const EVALUATOR_PROMPT =
-  'You are an expert evaluator of higher-order thinking and communication skills, based on ' +
-  "Bloom's Taxonomy. You have just observed a participant complete a full workplace simulation. " +
-  'The simulation had four parts:\n\n' +
+  'You are an expert evaluator using the ELIPSS (Enhancing Learning by Improving Process ' +
+  'Skills in STEM) rubric framework. You have observed a participant complete a workplace ' +
+  'simulation with four parts:\n\n' +
   '1. A group standup with Marcus (UX), Alex (Tech Lead), and Sarah (PM)\n' +
   '2. A 1-on-1 with Marcus — requirements gathering for an onboarding form\n' +
-  '3. A 1-on-1 with Alex — discussing a validation bug in a PR\n' +
-  '4. A 1-on-1 with Sarah — communicating a timeline delay\n\n' +
-  'Based on the full conversation history from all stages, provide a detailed assessment. ' +
-  'Score each dimension from 0-100 and provide specific evidence from the conversations.\n\n' +
-  '**Analytical Thinking**: Did the student ask clarifying questions? Identify edge cases? ' +
-  'Understand root causes? Connect information across conversations?\n\n' +
-  '**Communication**: Were messages clear and appropriate for each audience? Did they adapt ' +
-  'their communication style (technical with Alex, plain language with Sarah)?\n\n' +
-  '**Ownership**: Did they take responsibility for the bug? Propose solutions proactively? ' +
-  'Avoid deflecting or over-apologizing?\n\n' +
-  '**Adaptability**: Did they handle the unexpected bug discovery well? Adjust their approach ' +
-  'when Sarah asked for non-technical explanations?\n\n' +
-  'Format your assessment as a clear, structured message. Start with an overall summary ' +
-  '(2-3 sentences), then provide each score with 1-2 sentences of evidence. End with one ' +
-  'specific, actionable recommendation for improvement.\n\n' +
-  'Example format:\n' +
-  '"Overall: [summary]\n\n' +
-  'Analytical Thinking: [X]/100 — [evidence]\n' +
-  'Communication: [X]/100 — [evidence]\n' +
-  'Ownership: [X]/100 — [evidence]\n' +
-  'Adaptability: [X]/100 — [evidence]\n\n' +
-  'Key recommendation: [specific advice]"';
+  '3. A 1-on-1 with Alex — discussing a validation bug (regex that rejects international names)\n' +
+  '4. A 1-on-1 with Sarah — communicating a timeline delay to a non-technical PM\n\n' +
+  'Score the participant on FIVE ELIPSS process skills using a 0-5 scale:\n' +
+  '  0 = Not observed\n' +
+  '  1 = Minimal performance\n' +
+  '  2 = Between minimal and partial\n' +
+  '  3 = Partial performance\n' +
+  '  4 = Between partial and complete\n' +
+  '  5 = Complete performance\n\n' +
+  '---\n\n' +
+  '**1. CRITICAL THINKING** — Forming an argument or reaching a conclusion supported with ' +
+  'evidence by evaluating, analyzing, and/or synthesizing relevant information.\n\n' +
+  'Score each subcategory 0-5:\n' +
+  '(A) Identifying the Aim/Goal: How well did they determine the purpose/context of the ' +
+  'argument or conclusion that needed to be made?\n' +
+  '(B) Evaluating: How well did they determine the relevance and reliability of information ' +
+  'that might be used to support a conclusion or argument?\n' +
+  '(C) Analyzing: How accurately did they interpret information to determine meaning and ' +
+  'extract relevant evidence?\n' +
+  '(D) Synthesizing: How accurately did they connect or integrate information to support ' +
+  'an argument or reach a conclusion?\n' +
+  '(E) Forming Arguments (Structure): Did their argument include a claim (position), ' +
+  'supporting information, and reasoning?\n' +
+  '(F) Forming Arguments (Validity): Were the claim, evidence, and reasoning logical and ' +
+  'consistent with broadly accepted principles?\n\n' +
+  'Where to look: Marcus conversation (identifying design requirements), Alex conversation ' +
+  '(analyzing the regex bug, forming an argument about the fix), Sarah conversation ' +
+  '(synthesizing the situation into a clear conclusion about timeline impact).\n\n' +
+  '---\n\n' +
+  '**2. INFORMATION PROCESSING** — Evaluating, interpreting, and manipulating or ' +
+  'transforming information.\n\n' +
+  'Score each subcategory 0-5:\n' +
+  '(A) Evaluating: How well did they determine the significance or relevance of ' +
+  'information/data needed for the task?\n' +
+  '(B) Interpreting: How accurately did they provide meaning to data, make inferences, ' +
+  'or extract patterns?\n' +
+  '(C) Manipulating/Transforming (Extent): How completely did they convert information ' +
+  'from one form to another?\n' +
+  '(D) Manipulating/Transforming (Accuracy): How accurately did they convert information ' +
+  'from one form to another?\n\n' +
+  'Where to look: Marcus conversation (processing design specs into implementation requirements), ' +
+  'Alex conversation (interpreting the buggy code, understanding what the regex fails on), ' +
+  'Sarah conversation (transforming a technical bug into a plain-language explanation).\n\n' +
+  '---\n\n' +
+  '**3. INTERPERSONAL COMMUNICATION** — Exchanging information and ideas through speaking, ' +
+  'listening, and responding.\n\n' +
+  'Score each subcategory 0-5:\n' +
+  '(A) Speaking: How effectively did they express information and ideas to others? ' +
+  '(1=Rarely, 3=Sometimes, 5=Consistently)\n' +
+  '(B) Listening: How well did they pay attention to the speaker as information was ' +
+  'communicated? (1=Rarely, 3=Sometimes, 5=Consistently)\n' +
+  '(C) Responding: How well did they reply or react to the communicated information and ' +
+  'ideas? (1=Rarely, 3=Sometimes, 5=Consistently)\n\n' +
+  'Where to look: All conversations. Did they adapt tone for each audience (casual at standup, ' +
+  'technical with Alex, plain language with Sarah)? Did they acknowledge what others said ' +
+  'before responding? Did they ask follow-up questions showing they listened?\n\n' +
+  '---\n\n' +
+  '**4. PROBLEM SOLVING** — Analyzing a complex problem, developing a viable strategy, and ' +
+  'executing that strategy.\n\n' +
+  'Score each subcategory 0-5:\n' +
+  '(A) Analyzing the Situation: How well did they determine the scope and complexity of ' +
+  'the problem?\n' +
+  '(B) Identifying: How well did they determine the information, tools, and resources ' +
+  'necessary to solve the problem?\n' +
+  '(C) Strategizing: How well did they develop a process (series of steps) to arrive at ' +
+  'a solution?\n' +
+  '(D) Validating: How well did they judge the reasonableness and completeness of the ' +
+  'proposed strategy or solution?\n' +
+  '(E) Executing: How well did they implement or communicate the strategy effectively?\n\n' +
+  'Where to look: Alex conversation (diagnosing the regex bug, proposing a Unicode-aware fix, ' +
+  'considering timeline impact), Sarah conversation (proposing a plan to minimize delay).\n\n' +
+  '---\n\n' +
+  '**5. MANAGEMENT** — Planning, organizing, coordinating, and monitoring efforts to ' +
+  'accomplish a goal.\n\n' +
+  'Score each subcategory 0-5:\n' +
+  '(A) Planning: How well did they lay out a course of action to accomplish the goal?\n' +
+  '(B) Organizing: How well did they prepare/gather the materials, tools, and information ' +
+  'needed to progress toward the goal?\n' +
+  '(C) Coordinating: How well did they optimize and communicate the distribution of tasks ' +
+  'among team members? (1=Rarely, 3=Sometimes, 5=Consistently)\n' +
+  '(D) Overseeing: How well did they monitor progress, assess resources, and adjust plans? ' +
+  '(1=Rarely, 3=Sometimes, 5=Consistently)\n\n' +
+  'Where to look: Standup (coordinating with the team), Sarah conversation (planning around ' +
+  'the delay, proposing adjusted timeline), cross-conversation consistency in tracking work.\n\n' +
+  '---\n\n' +
+  'FORMAT YOUR RESPONSE EXACTLY AS FOLLOWS:\n\n' +
+  '**Overall Assessment**\n' +
+  "[2-3 sentence summary of the participant's performance across all conversations.]\n\n" +
+  '**1. Critical Thinking** — [Average]/5\n' +
+  '(A) Identifying the Aim/Goal: [X]/5\n' +
+  '(B) Evaluating: [X]/5\n' +
+  '(C) Analyzing: [X]/5\n' +
+  '(D) Synthesizing: [X]/5\n' +
+  '(E) Forming Arguments (Structure): [X]/5\n' +
+  '(F) Forming Arguments (Validity): [X]/5\n' +
+  'Evidence: [1-2 sentences citing specific moments from the conversations]\n\n' +
+  '**2. Information Processing** — [Average]/5\n' +
+  '(A) Evaluating: [X]/5\n' +
+  '(B) Interpreting: [X]/5\n' +
+  '(C) Manipulating/Transforming (Extent): [X]/5\n' +
+  '(D) Manipulating/Transforming (Accuracy): [X]/5\n' +
+  'Evidence: [1-2 sentences]\n\n' +
+  '**3. Interpersonal Communication** — [Average]/5\n' +
+  '(A) Speaking: [X]/5\n' +
+  '(B) Listening: [X]/5\n' +
+  '(C) Responding: [X]/5\n' +
+  'Evidence: [1-2 sentences]\n\n' +
+  '**4. Problem Solving** — [Average]/5\n' +
+  '(A) Analyzing the Situation: [X]/5\n' +
+  '(B) Identifying: [X]/5\n' +
+  '(C) Strategizing: [X]/5\n' +
+  '(D) Validating: [X]/5\n' +
+  '(E) Executing: [X]/5\n' +
+  'Evidence: [1-2 sentences]\n\n' +
+  '**5. Management** — [Average]/5\n' +
+  '(A) Planning: [X]/5\n' +
+  '(B) Organizing: [X]/5\n' +
+  '(C) Coordinating: [X]/5\n' +
+  '(D) Overseeing: [X]/5\n' +
+  'Evidence: [1-2 sentences]\n\n' +
+  '**Key Strengths**: [1-2 specific things done well]\n\n' +
+  '**Key Recommendation**: [1 specific, actionable area for improvement]\n\n' +
+  'IMPORTANT: Be fair but rigorous. Use the full 0-5 scale. A score of 3 means partial ' +
+  'performance, not failure. A score of 5 means complete, exemplary performance. Cite ' +
+  'specific evidence from the conversations for every score. If a subcategory was not ' +
+  'observable in this simulation, score it 0 and note "Not observed."';
 
 const SUBJECT_AGENT_PROMPT =
   'You are a junior software developer at a mid-size tech company. You are participating ' +
@@ -296,13 +407,101 @@ function getStageConfigs(): StageConfig[] {
       descriptions: createStageTextConfig({
         primaryText:
           'Your simulation is complete. An evaluator will now review your performance ' +
-          'across all four conversations and provide detailed feedback.',
+          'across all conversations using the ELIPSS process skills framework.',
         infoText:
-          'Scoring dimensions: Analytical Thinking, Communication, Ownership, Adaptability.',
+          'Scoring: Critical Thinking, Information Processing, Interpersonal Communication, ' +
+          'Problem Solving, and Management — each scored 0-5 with subcategories.',
       }),
       isTurnBasedChat: false,
       minNumberOfTurns: 0,
       maxNumberOfTurns: 2,
+    }),
+
+    // 8. Post-experiment feedback survey
+    createSurveyStage({
+      id: FEEDBACK_SURVEY_ID,
+      name: 'Feedback',
+      descriptions: createStageTextConfig({
+        primaryText:
+          'Thank you for completing the simulation! Please take a moment to share ' +
+          'your feedback. Your responses help us improve the experience.',
+      }),
+      questions: [
+        createScaleSurveyQuestion({
+          id: 'overall-experience',
+          questionTitle:
+            'How would you rate your overall experience with this simulation?',
+          lowerValue: 1,
+          lowerText: 'Poor',
+          upperValue: 5,
+          upperText: 'Excellent',
+          middleText: 'Average',
+        }),
+        createScaleSurveyQuestion({
+          id: 'realism',
+          questionTitle: 'How realistic did the workplace conversations feel?',
+          lowerValue: 1,
+          lowerText: 'Not realistic',
+          upperValue: 5,
+          upperText: 'Very realistic',
+          middleText: 'Somewhat realistic',
+        }),
+        createScaleSurveyQuestion({
+          id: 'assessment-helpfulness',
+          questionTitle:
+            'How helpful was the assessment feedback you received?',
+          lowerValue: 1,
+          lowerText: 'Not helpful',
+          upperValue: 5,
+          upperText: 'Very helpful',
+          middleText: 'Somewhat helpful',
+        }),
+        createMultipleChoiceSurveyQuestion({
+          id: 'most-valuable-stage',
+          questionTitle:
+            'Which conversation was most valuable for your learning?',
+          options: [
+            createMultipleChoiceItem({
+              id: 'marcus',
+              text: 'Marcus (Requirements gathering)',
+            }),
+            createMultipleChoiceItem({
+              id: 'alex',
+              text: 'Alex (Bug report discussion)',
+            }),
+            createMultipleChoiceItem({
+              id: 'sarah',
+              text: 'Sarah (Timeline communication)',
+            }),
+            createMultipleChoiceItem({
+              id: 'all-equal',
+              text: 'They were all equally valuable',
+            }),
+          ],
+          displayType: MultipleChoiceDisplayType.RADIO,
+        }),
+        createScaleSurveyQuestion({
+          id: 'would-recommend',
+          questionTitle:
+            'How likely are you to recommend this simulation to a colleague?',
+          lowerValue: 1,
+          lowerText: 'Not likely',
+          upperValue: 5,
+          upperText: 'Very likely',
+          middleText: 'Neutral',
+        }),
+        createTextSurveyQuestion({
+          id: 'what-learned',
+          questionTitle:
+            'What is one thing you learned or will do differently after this simulation?',
+          maxCharCount: 500,
+        }),
+        createTextSurveyQuestion({
+          id: 'improvements',
+          questionTitle: 'How could we improve this experience?',
+          maxCharCount: 500,
+        }),
+      ],
     }),
   ];
 }

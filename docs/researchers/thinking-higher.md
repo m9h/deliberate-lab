@@ -30,14 +30,17 @@ The simulation has **7 stages**:
 - **Sarah (Project Manager)** -- Professional PM who needs plain-language clarity on a timeline delay. Marketing is waiting on this feature.
 - **Evaluator** -- Assesses the participant across four dimensions after all conversations are complete.
 
-### Assessment Dimensions
+### Assessment Framework: ELIPSS Process Skills
 
-The evaluator scores participants from 0-100 on:
+The evaluator uses the [ELIPSS](https://elipss.com/) (Enhancing Learning by Improving Process Skills in STEM) validated rubric framework. Each skill is scored **0-5** with subcategories:
 
-- **Analytical Thinking** -- Clarifying questions, edge case identification, root cause understanding
-- **Communication** -- Audience-appropriate language, adapting style across conversations
-- **Ownership** -- Taking responsibility, proposing solutions proactively
-- **Adaptability** -- Handling unexpected issues, adjusting approach when needed
+- **Critical Thinking** -- Forming arguments/conclusions supported with evidence (6 subcategories: Identifying Aim, Evaluating, Analyzing, Synthesizing, Forming Arguments Structure & Validity)
+- **Information Processing** -- Evaluating, interpreting, and transforming information (4 subcategories: Evaluating, Interpreting, Manipulating/Transforming Extent & Accuracy)
+- **Interpersonal Communication** -- Exchanging information through speaking, listening, and responding (3 subcategories: Speaking, Listening, Responding)
+- **Problem Solving** -- Analyzing problems, developing strategies, and executing them (5 subcategories: Analyzing, Identifying, Strategizing, Validating, Executing)
+- **Management** -- Planning, organizing, coordinating, and monitoring efforts (4 subcategories: Planning, Organizing, Coordinating, Overseeing)
+
+Scale: 0 = Not observed, 1 = Minimal, 3 = Partial, 5 = Complete
 
 ---
 
@@ -160,16 +163,32 @@ Below is an example from an automated test run showing how conversations flow.
 >
 > **Participant**: Basically, the way the old system saves user data doesn't quite work with the new fields I'm adding, so I need to update that backend part first. I think this will add about two or three days to the original timeline.
 
-### Assessment
+### Assessment (ELIPSS Rubric)
 
-> **Evaluator**: Overall: You demonstrated strong technical comprehension and professional communication skills, effectively balancing implementation details with stakeholder management.
+> **Evaluator**: **Overall Assessment** -- You demonstrated strong technical comprehension and professional communication, effectively navigating requirements gathering, bug diagnosis, and stakeholder management.
 >
-> - Analytical Thinking: **90/100** -- You correctly identified the Unicode validation issue and proposed the specific regex solution during the technical discussion with Alex.
-> - Communication: **85/100** -- You adapted your style well, discussing specific libraries with Marcus and Alex while translating technical issues into plain language for Sarah.
-> - Ownership: **95/100** -- You took immediate responsibility for the validation oversight and committed to a rigorous testing plan without unnecessary deflection.
-> - Adaptability: **82/100** -- You handled the unexpected bug discovery smoothly, though your explanation to Sarah slightly deviated from the specific issue discussed earlier.
+> **1. Critical Thinking** -- 4.2/5
+> (A) Identifying the Aim/Goal: 5/5 (B) Evaluating: 4/5 (C) Analyzing: 4/5 (D) Synthesizing: 4/5 (E) Arguments (Structure): 4/5 (F) Arguments (Validity): 4/5
+> Evidence: Correctly identified the Unicode validation issue and proposed the \\p{L} regex fix. Connected Marcus's inclusivity requirements to the bug diagnosis with Alex.
 >
-> Key recommendation: Ensure consistent messaging when translating technical bugs to non-technical stakeholders.
+> **2. Information Processing** -- 4.0/5
+> (A) Evaluating: 4/5 (B) Interpreting: 5/5 (C) Transforming (Extent): 4/5 (D) Transforming (Accuracy): 3/5
+> Evidence: Accurately interpreted the buggy regex and its failure modes. Translation to Sarah slightly deviated from the specific regex issue discussed with Alex.
+>
+> **3. Interpersonal Communication** -- 4.3/5
+> (A) Speaking: 5/5 (B) Listening: 4/5 (C) Responding: 4/5
+> Evidence: Adapted tone well across audiences -- technical with Alex, plain language with Sarah. Acknowledged colleagues' points before responding.
+>
+> **4. Problem Solving** -- 4.0/5
+> (A) Analyzing: 4/5 (B) Identifying: 4/5 (C) Strategizing: 4/5 (D) Validating: 4/5 (E) Executing: 4/5
+> Evidence: Diagnosed the root cause, proposed a Unicode-aware fix, and estimated timeline impact. Could have been more specific about testing strategy.
+>
+> **5. Management** -- 3.8/5
+> (A) Planning: 4/5 (B) Organizing: 4/5 (C) Coordinating: 4/5 (D) Overseeing: 3/5
+> Evidence: Communicated the delay and proposed a revised timeline. Did not proactively suggest ways to minimize the delay or parallel-track work.
+>
+> **Key Strengths**: Strong technical diagnosis and audience-appropriate communication.
+> **Key Recommendation**: When communicating delays, propose specific mitigation strategies (e.g., parallel-tracking work, phased delivery) to demonstrate proactive management.
 
 ---
 

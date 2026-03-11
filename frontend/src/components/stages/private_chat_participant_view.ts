@@ -181,11 +181,11 @@ export class PrivateChatView extends MobxLitElement {
   }
 
   private renderConversationEndedMessage() {
-    return html`
-      <div class="description">
-        The conversation has ended. Please proceed to the next stage.
-      </div>
-    `;
+    const isLast = this.participantService.isLastStage();
+    const message = isLast
+      ? 'The simulation is complete. You may close this window.'
+      : 'The conversation has ended. Please proceed to the next stage.';
+    return html` <div class="description">${message}</div> `;
   }
 
   private renderMinTurnsMessage(currentCount: number) {

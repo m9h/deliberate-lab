@@ -432,7 +432,19 @@ describe('shouldUseNativeStructuredOutput', () => {
     expect(shouldUseNativeStructuredOutput(config)).toBe(false);
   });
 
-  it('returns true for JSON_SCHEMA with schema', () => {
+  it('returns true for JSON_SCHEMA with schema and Gemini provider', () => {
+    const config: StructuredOutputConfig = {
+      enabled: true,
+      type: StructuredOutputType.JSON_SCHEMA,
+      appendToPrompt: false,
+      schema: {type: StructuredOutputDataType.OBJECT},
+    };
+    expect(
+      shouldUseNativeStructuredOutput(config, ApiKeyType.GEMINI_API_KEY),
+    ).toBe(true);
+  });
+
+  it('returns true for JSON_SCHEMA with schema and no provider specified', () => {
     const config: StructuredOutputConfig = {
       enabled: true,
       type: StructuredOutputType.JSON_SCHEMA,
@@ -440,6 +452,30 @@ describe('shouldUseNativeStructuredOutput', () => {
       schema: {type: StructuredOutputDataType.OBJECT},
     };
     expect(shouldUseNativeStructuredOutput(config)).toBe(true);
+  });
+
+  it('returns false for JSON_SCHEMA with OpenAI-compatible provider', () => {
+    const config: StructuredOutputConfig = {
+      enabled: true,
+      type: StructuredOutputType.JSON_SCHEMA,
+      appendToPrompt: false,
+      schema: {type: StructuredOutputDataType.OBJECT},
+    };
+    expect(
+      shouldUseNativeStructuredOutput(config, ApiKeyType.OPENAI_API_KEY),
+    ).toBe(false);
+  });
+
+  it('returns false for JSON_SCHEMA with Ollama provider', () => {
+    const config: StructuredOutputConfig = {
+      enabled: true,
+      type: StructuredOutputType.JSON_SCHEMA,
+      appendToPrompt: false,
+      schema: {type: StructuredOutputDataType.OBJECT},
+    };
+    expect(
+      shouldUseNativeStructuredOutput(config, ApiKeyType.OLLAMA_CUSTOM_URL),
+    ).toBe(false);
   });
 });
 

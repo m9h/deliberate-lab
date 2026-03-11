@@ -500,14 +500,35 @@ function mapGenerationConfig(config: ModelGenerationConfig): object {
 //         └─ Refusal: finishReason → mapFinishReason()
 /**
  * Checks if structured output should use native JSON schema mode.
+ *
+ * Native JSON schema mode (Output.object()) is only reliable with providers
+ * that fully support it: Google (Gemini/Vertex) and OpenAI direct.
+ * OpenAI-compatible endpoints (Groq, Together, OpenRouter, HuggingFace, etc.)
+ * and Ollama often don't support JSON schema mode, causing silent failures.
+ * For these providers, we rely on prompt-based JSON instructions
+ * (appendToPrompt: true) and text-based fallback parsing.
  */
 function shouldUseNativeStructuredOutput(
   config?: StructuredOutputConfig,
+  apiType?: ApiKeyType,
 ): boolean {
   if (!config?.enabled || !config.schema) {
     return false;
   }
-  return config.type === StructuredOutputType.JSON_SCHEMA;
+  if (config.type !== StructuredOutputType.JSON_SCHEMA) {
+    return false;
+  }
+  // Skip native structured output for providers with unreliable support.
+  // OpenAI-compatible endpoints include Groq, Together, OpenRouter, etc.
+  // which generally don't support JSON schema mode via the compatibility layer.
+  // Ollama also has inconsistent structured output support.
+  if (
+    apiType === ApiKeyType.OPENAI_API_KEY ||
+    apiType === ApiKeyType.OLLAMA_CUSTOM_URL
+  ) {
+    return false;
+  }
+  return true;
 }
 
 // ============================================================================
@@ -932,8 +953,12 @@ export async function generateAIResponse(
     }
 
     // Add structured output if enabled
+    // Pass apiType to skip native JSON schema for incompatible providers
     if (
-      shouldUseNativeStructuredOutput(structuredOutputConfig) &&
+      shouldUseNativeStructuredOutput(
+        structuredOutputConfig,
+        modelSettings.apiType,
+      ) &&
       structuredOutputConfig?.schema
     ) {
       const jsonSchemaObj = schemaToObject(structuredOutputConfig.schema);

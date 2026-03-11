@@ -10,7 +10,7 @@
     url: /researchers/add-mediator
   - title: Add LLM agent participants to experiment
     url: /researchers/add-agent-participant
-  - title: "Thinking Higher: Workplace Simulation"
+  - title: 'Thinking Higher: Workplace Simulation'
     url: /researchers/thinking-higher
   - title: Add Prolific integration
     url: /researchers/prolific
@@ -30,8 +30,12 @@
     url: /developers/deploy
   - title: API Reference
     url: /developers/api
-  - title: "Codelab: Create Experiment via API"
+  - title: 'Codelab: Create Experiment via API'
     url: /developers/experiment-api-codelab
+  - title: Thinking Higher API
+    url: /developers/thinking-higher-api
+  - title: Thinking Higher Architecture
+    url: /developers/thinking-higher-architecture
 - title: Feature Docs
   pages:
   - title: Variables
@@ -40,6 +44,5 @@
     url: /features/help
 - title: Other
   pages:
-    - title: Changelog
-      url: /changelog
-  
+  - title: Changelog
+    url: /changelog

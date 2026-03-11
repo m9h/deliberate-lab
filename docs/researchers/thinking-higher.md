@@ -217,3 +217,59 @@ The script will:
 5. Export transcripts to `scripts/transcripts_<timestamp>.json`
 
 Typical runtime is 5-10 minutes.
+
+## Customization
+
+You can fully customize the "Thinking Higher" experiment after creating it from the template:
+
+*   **Modify Stage Count**: In the Experiment Builder, you can add new stages or delete existing ones. If you want a shorter simulation, simply remove the "Sarah" stage or "Marcus" stage.
+*   **Change Personas**: Go to the **AI Mediators** section of the builder to edit the prompts for Marcus, Alex, Sarah, or the Evaluator. You can change their personalities, the specific bug they discuss, or the design requirements.
+*   **Adjust Turn Limits**: Click on any Chat stage in the builder and adjust the **Min Turns** and **Max Turns** to make the conversations longer or shorter.
+*   **Swap Rubric Dimensions**: Open the **Evaluator** prompt in the Assessment stage config and modify the text to use a different rubric (e.g., standard performance review, custom communication matrix) instead of ELIPSS.
+
+## Data Export
+
+Once your experiment is complete, you can export the data to analyze participant performance.
+
+1.  Navigate to your Experiment Dashboard.
+2.  Click the **Export Data** button.
+3.  Choose **JSON** or **CSV** format.
+
+**Data Location:**
+*   Transcripts for the Group Standup are located under `publicStageData`.
+*   Transcripts for all 1-on-1s and the Assessment are located under the individual `participant > stageData` subcollections.
+
+**Exported JSON Schema:**
+The exported JSON will contain a list of participants. Each participant object will have an array of stage data containing the chat messages and survey responses.
+
+```json
+{
+  "participants": [
+    {
+      "id": "part-123",
+      "stageData": {
+        "assessment-chat": {
+          "messages": [
+            {
+              "sender": "Evaluator",
+              "text": "**Overall Assessment**..."
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+## Troubleshooting
+
+If you encounter issues while running the simulation, check the following:
+
+*   **"Error fetching response"**: This usually means the Gemini API is unavailable or your prompt is too large. Check the Firebase Cloud Functions logs for specific error details.
+*   **API Key Errors**: Ensure you have saved a valid Gemini API Key in the **Settings** menu. The AI mediators cannot function without it.
+*   **Mediator Not Responding**:
+    *   Verify the API key is set.
+    *   Check if the participant has reached the maximum turn limit for that stage.
+    *   Ensure the mediator is enabled for the specific cohort.
+*   **Assessment Not Appearing**: The Assessment stage is configured for the Evaluator to send the message automatically. If it doesn't appear immediately, wait a few seconds for the LLM to generate the long response based on the previous context.

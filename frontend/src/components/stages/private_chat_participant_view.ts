@@ -48,6 +48,17 @@ export class PrivateChatView extends MobxLitElement {
     const lastMessageIsFromParticipant =
       lastMessage !== null && lastMessage.senderId === publicId;
 
+    // If mediator signaled readyToEndChat, clear the timeout since no response is coming
+    const stageAnswer = this.participantService.answerMap[this.stage?.id ?? ''];
+    if (
+      stageAnswer &&
+      'readyToEndChat' in stageAnswer &&
+      stageAnswer.readyToEndChat === true
+    ) {
+      this.responseTimeout.clear();
+      return;
+    }
+
     const sentAtSeconds = lastMessage?.timestamp?.seconds ?? null;
     this.responseTimeout.update(
       lastMessage?.id ?? null,
@@ -73,12 +84,21 @@ export class PrivateChatView extends MobxLitElement {
       (msg) => msg.senderId === publicId && !msg.isError,
     ).length;
 
+    // Check if mediator signaled "ready to end chat" (i.e., shouldRespond was false).
+    // This is written to the participant's stage answer doc by the backend.
+    const stageAnswer = this.participantService.answerMap[this.stage.id];
+    const mediatorReadyToEnd =
+      stageAnswer &&
+      'readyToEndChat' in stageAnswer &&
+      stageAnswer.readyToEndChat === true;
+
     // Check if we're waiting for a response (last message is from participant
-    // and we haven't timed out waiting)
+    // and we haven't timed out waiting, and mediator hasn't signaled end)
     const isWaitingForResponse =
       chatMessages.length > 0 &&
       chatMessages[chatMessages.length - 1].senderId === publicId &&
-      !this.responseTimeout.timedOut;
+      !this.responseTimeout.timedOut &&
+      !mediatorReadyToEnd;
 
     // Check if max number of turns reached (but only after response received)
     const maxTurnsReached =
@@ -86,8 +106,8 @@ export class PrivateChatView extends MobxLitElement {
       participantMessageCount >= this.stage.maxNumberOfTurns &&
       !isWaitingForResponse;
 
-    // Check if conversation has ended (max turns reached and not waiting for response)
-    const isConversationOver = maxTurnsReached;
+    // Check if conversation has ended (max turns reached, or mediator ended it)
+    const isConversationOver = maxTurnsReached || mediatorReadyToEnd;
 
     // Disable input if turn-taking is set and latest message
     // is from participant OR if conversation is over
@@ -106,10 +126,13 @@ export class PrivateChatView extends MobxLitElement {
 
     // Check if minimum number of turns met for progression
     // For turn-based chats, only count completed turns (where agent has responded)
-    const minTurnsMet = this.stage.isTurnBasedChat
-      ? participantMessageCount >= this.stage.minNumberOfTurns &&
-        !isWaitingForResponse
-      : participantMessageCount >= this.stage.minNumberOfTurns;
+    // If mediator ended the chat, always allow progression
+    const minTurnsMet =
+      mediatorReadyToEnd ||
+      (this.stage.isTurnBasedChat
+        ? participantMessageCount >= this.stage.minNumberOfTurns &&
+          !isWaitingForResponse
+        : participantMessageCount >= this.stage.minNumberOfTurns);
 
     return html`
       <chat-interface .stage=${this.stage} .disableInput=${isDisabledInput()}>

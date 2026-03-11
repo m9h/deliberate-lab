@@ -59,3 +59,57 @@ a {
   @include common.chip;
   @include typescale.label-small;
 }
+
+.toggle-link {
+  @include typescale.label-small;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  padding: common.$spacing-small 0;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: common.$spacing-medium;
+}
+
+.preset-card {
+  @include common.flex-column;
+  gap: common.$spacing-xs;
+  padding: common.$spacing-medium;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: common.$spacing-medium;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+
+  &:hover {
+    border-color: var(--md-sys-color-primary);
+    background-color: var(--md-sys-color-surface-variant);
+  }
+
+  &.active {
+    border-color: var(--md-sys-color-primary);
+    background-color: var(--md-sys-color-primary-container);
+  }
+}
+
+.preset-name {
+  @include typescale.label-large;
+  font-weight: 600;
+}
+
+.preset-description {
+  @include typescale.body-small;
+  color: var(--md-sys-color-outline);
+}
+
+.preset-free {
+  @include typescale.label-small;
+  color: var(--md-sys-color-tertiary);
+}

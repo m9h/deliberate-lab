@@ -15,3 +15,10 @@
   flex-wrap: wrap;
   gap: common.$spacing-medium;
 }
+
+.model-chips {
+  @include common.flex-row;
+  flex-wrap: wrap;
+  gap: common.$spacing-small;
+  margin-top: common.$spacing-small;
+}

@@ -1,10 +1,15 @@
 import '../../pair-components/button';
 import '@material/web/textfield/filled-text-field.js';
 
-import {LitElement, CSSResultGroup, html} from 'lit';
+import {LitElement, CSSResultGroup, html, nothing} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 
-import {ApiKeyType, getDefaultModelForApiType} from '@deliberation-lab/utils';
+import {
+  ApiKeyType,
+  ModelOption,
+  MODEL_OPTIONS,
+  getDefaultModelForApiType,
+} from '@deliberation-lab/utils';
 
 import {styles} from './agent_model_selector.scss';
 
@@ -72,7 +77,12 @@ export class AgentModelSelector extends LitElement {
   }
 
   private renderModel() {
+    const suggestedModels = MODEL_OPTIONS[this.apiType] ?? [];
+
     return html`
+      ${suggestedModels.length > 0
+        ? this.renderSuggestedModels(suggestedModels)
+        : nothing}
       <md-filled-text-field
         label="Model ID"
         .value=${this.modelName}
@@ -83,6 +93,32 @@ export class AgentModelSelector extends LitElement {
         }}
       >
       </md-filled-text-field>
+    `;
+  }
+
+  private renderSuggestedModels(models: ModelOption[]) {
+    return html`
+      <div>
+        <div class="field-title">Suggested models</div>
+        <div class="model-chips">
+          ${models.map((model) => {
+            const isActive = this.modelName === model.id;
+            return html`
+              <pr-button
+                size="small"
+                color="${isActive ? 'primary' : 'neutral'}"
+                variant=${isActive ? 'tonal' : 'default'}
+                ?disabled=${this.disabled}
+                @click=${() => {
+                  this.emitChange(this.apiType, model.id);
+                }}
+              >
+                ${model.displayName}
+              </pr-button>
+            `;
+          })}
+        </div>
+      </div>
     `;
   }
 }

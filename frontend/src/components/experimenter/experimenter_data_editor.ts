@@ -2,7 +2,7 @@ import '../../pair-components/icon_button';
 import '../../pair-components/tooltip';
 
 import {MobxLitElement} from '@adobe/lit-mobx';
-import {CSSResultGroup, html} from 'lit';
+import {CSSResultGroup, html, nothing} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 
 import '@material/web/textfield/filled-text-field.js';
@@ -33,6 +33,56 @@ interface CheckApiKeyResult {
   errorMessage?: string;
 }
 
+/**
+ * Quick-setup presets for OpenAI-compatible providers.
+ * These auto-fill the base URL so experimenters only need an API key.
+ */
+interface ProviderPreset {
+  name: string;
+  baseUrl: string;
+  description: string;
+  signupUrl: string;
+  freeTier: string;
+}
+
+const OPENAI_COMPATIBLE_PRESETS: ProviderPreset[] = [
+  {
+    name: 'Groq',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    description: 'Ultra-fast inference on custom LPU hardware',
+    signupUrl: 'https://console.groq.com',
+    freeTier: 'Free: 1,000 requests/day',
+  },
+  {
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    description: 'Unified gateway to many model providers',
+    signupUrl: 'https://openrouter.ai',
+    freeTier: 'Free: 50 requests/day on select models',
+  },
+  {
+    name: 'Together AI',
+    baseUrl: 'https://api.together.xyz/v1',
+    description: 'Fast open-source model hosting',
+    signupUrl: 'https://www.together.ai',
+    freeTier: 'Free credits on signup',
+  },
+  {
+    name: 'HuggingFace',
+    baseUrl: 'https://router.huggingface.co/v1',
+    description: 'Routes to fastest provider for any HF model',
+    signupUrl: 'https://huggingface.co/settings/tokens',
+    freeTier: 'Free: rate-limited inference',
+  },
+  {
+    name: 'OpenAI',
+    baseUrl: '',
+    description: 'OpenAI GPT models (paid)',
+    signupUrl: 'https://platform.openai.com/api-keys',
+    freeTier: '',
+  },
+];
+
 /** Editor for adjusting experimenter data */
 @customElement('experimenter-data-editor')
 export class ExperimenterDataEditor extends MobxLitElement {
@@ -43,6 +93,7 @@ export class ExperimenterDataEditor extends MobxLitElement {
   private readonly experimentService = core.getService(ExperimentService);
 
   @state() apiKeyResults = new Map<ApiKeyType, CheckApiKeyResult>();
+  @state() showAdvancedProviders = false;
 
   /** Update a result and trigger a reactive re-render. */
   private setApiKeyResult(apiType: ApiKeyType, result: CheckApiKeyResult) {
@@ -67,17 +118,31 @@ export class ExperimenterDataEditor extends MobxLitElement {
 
     return html`
       <div class="banner">
-        Note: API keys are shared across all of your experiments!
+        API keys are shared across all of your experiments. If your admin has
+        configured default keys, you can skip this section.
       </div>
-      ${this.renderGeminiKey()}
-      <div class="divider"></div>
-      ${this.renderVertexAISettings()}
-      <div class="divider"></div>
       ${this.renderOpenAISettings()}
       <div class="divider"></div>
-      ${this.renderClaudeSettings()}
-      <div class="divider"></div>
-      ${this.renderOllamaSettings()}
+      ${this.showAdvancedProviders
+        ? html`
+            ${this.renderGeminiKey()}
+            <div class="divider"></div>
+            ${this.renderVertexAISettings()}
+            <div class="divider"></div>
+            ${this.renderClaudeSettings()}
+            <div class="divider"></div>
+            ${this.renderOllamaSettings()}
+          `
+        : html`
+            <div
+              class="toggle-link"
+              @click=${() => {
+                this.showAdvancedProviders = true;
+              }}
+            >
+              Show additional providers (Gemini, Vertex AI, Claude, Ollama)
+            </div>
+          `}
     `;
   }
 
@@ -124,6 +189,131 @@ export class ExperimenterDataEditor extends MobxLitElement {
           </pr-icon-button>
         </pr-tooltip>
         ${renderResult(result)}
+      </div>
+    `;
+  }
+
+  // ============ OpenAI-compatible (primary section) ============
+  private renderOpenAISettings() {
+    const updateOpenAISettings = (
+      e: InputEvent,
+      field: 'apiKey' | 'baseUrl',
+    ) => {
+      const oldData = this.authService.experimenterData;
+      if (!oldData) return;
+
+      const value = (e.target as HTMLInputElement).value;
+      this.setApiKeyResult(ApiKeyType.OPENAI_API_KEY, {
+        status: CheckApiKeyStatus.NONE,
+      });
+      let newData;
+
+      switch (field) {
+        case 'apiKey':
+          newData = updateExperimenterData(oldData, {
+            apiKeys: {
+              ...oldData.apiKeys,
+              openAIApiKey: {
+                ...(oldData.apiKeys?.openAIApiKey ??
+                  createOpenAIServerConfig()),
+                apiKey: value,
+              },
+            },
+          });
+          break;
+
+        case 'baseUrl':
+          newData = updateExperimenterData(oldData, {
+            apiKeys: {
+              ...oldData.apiKeys,
+              openAIApiKey: {
+                ...(oldData.apiKeys?.openAIApiKey ??
+                  createOpenAIServerConfig()),
+                baseUrl: value,
+              },
+            },
+          });
+          break;
+        default:
+          console.error('Error: field type not found: ', field);
+          return;
+      }
+
+      this.authService.writeExperimenterData(newData);
+    };
+
+    const applyPreset = (preset: ProviderPreset) => {
+      const oldData = this.authService.experimenterData;
+      if (!oldData) return;
+
+      this.setApiKeyResult(ApiKeyType.OPENAI_API_KEY, {
+        status: CheckApiKeyStatus.NONE,
+      });
+
+      const newData = updateExperimenterData(oldData, {
+        apiKeys: {
+          ...oldData.apiKeys,
+          openAIApiKey: {
+            ...(oldData.apiKeys?.openAIApiKey ?? createOpenAIServerConfig()),
+            baseUrl: preset.baseUrl,
+          },
+        },
+      });
+
+      this.authService.writeExperimenterData(newData);
+    };
+
+    const data = this.authService.experimenterData;
+    const currentBaseUrl = data?.apiKeys.openAIApiKey?.baseUrl ?? '';
+
+    return html`
+      <div class="section">
+        <h3>OpenAI-compatible API</h3>
+        <p class="description">
+          Works with OpenAI, Groq, OpenRouter, Together AI, HuggingFace, and any
+          OpenAI-compatible endpoint. Select a provider below to auto-fill the
+          base URL.
+        </p>
+
+        <div class="preset-grid">
+          ${OPENAI_COMPATIBLE_PRESETS.map((preset) => {
+            const isActive = preset.baseUrl === currentBaseUrl;
+            return html`
+              <div
+                class="preset-card ${isActive ? 'active' : ''}"
+                @click=${() => applyPreset(preset)}
+              >
+                <div class="preset-name">${preset.name}</div>
+                <div class="preset-description">${preset.description}</div>
+                ${preset.freeTier
+                  ? html`<div class="preset-free">${preset.freeTier}</div>`
+                  : nothing}
+              </div>
+            `;
+          })}
+        </div>
+
+        <md-filled-text-field
+          label="API key"
+          placeholder="Enter your API key"
+          .value=${data?.apiKeys.openAIApiKey?.apiKey ?? ''}
+          @input=${(e: InputEvent) => updateOpenAISettings(e, 'apiKey')}
+        ></md-filled-text-field>
+
+        <md-filled-text-field
+          label="Base URL (blank = OpenAI default)"
+          placeholder="https://api.groq.com/openai/v1"
+          variant="outlined"
+          .value=${currentBaseUrl}
+          @input=${(e: InputEvent) => updateOpenAISettings(e, 'baseUrl')}
+        ></md-filled-text-field>
+
+        ${currentBaseUrl
+          ? html`<div class="banner">
+              Using custom endpoint: ${currentBaseUrl}
+            </div>`
+          : nothing}
+        ${this.renderCheckApiKey(ApiKeyType.OPENAI_API_KEY)}
       </div>
     `;
   }
@@ -271,78 +461,6 @@ export class ExperimenterDataEditor extends MobxLitElement {
       </div>
     `;
   }
-  // ============ OpenAI-compatible API ============
-  private renderOpenAISettings() {
-    const updateOpenAISettings = (
-      e: InputEvent,
-      field: 'apiKey' | 'baseUrl',
-    ) => {
-      const oldData = this.authService.experimenterData;
-      if (!oldData) return;
-
-      const value = (e.target as HTMLInputElement).value;
-      this.setApiKeyResult(ApiKeyType.OPENAI_API_KEY, {
-        status: CheckApiKeyStatus.NONE,
-      });
-      let newData;
-
-      switch (field) {
-        case 'apiKey':
-          newData = updateExperimenterData(oldData, {
-            apiKeys: {
-              ...oldData.apiKeys,
-              openAIApiKey: {
-                ...(oldData.apiKeys?.openAIApiKey ??
-                  createOpenAIServerConfig()),
-                apiKey: value,
-              },
-            },
-          });
-          break;
-
-        case 'baseUrl':
-          newData = updateExperimenterData(oldData, {
-            apiKeys: {
-              ...oldData.apiKeys,
-              openAIApiKey: {
-                ...(oldData.apiKeys?.openAIApiKey ??
-                  createOpenAIServerConfig()),
-                baseUrl: value,
-              },
-            },
-          });
-          break;
-        default:
-          console.error('Error: field type not found: ', field);
-          return;
-      }
-
-      this.authService.writeExperimenterData(newData);
-    };
-
-    const data = this.authService.experimenterData;
-    return html`
-      <div class="section">
-        <h3>Open AI API settings</h3>
-        <md-filled-text-field
-          label="API key"
-          placeholder="Add Open AI API key"
-          .value=${data?.apiKeys.openAIApiKey?.apiKey ?? ''}
-          @input=${(e: InputEvent) => updateOpenAISettings(e, 'apiKey')}
-        ></md-filled-text-field>
-
-        <md-filled-text-field
-          label="Base URL (if blank, uses OpenAI's servers)"
-          placeholder="http://example:14434/v1"
-          variant="outlined"
-          .value=${data?.apiKeys.openAIApiKey?.baseUrl ?? ''}
-          @input=${(e: InputEvent) => updateOpenAISettings(e, 'baseUrl')}
-        ></md-filled-text-field>
-        ${this.renderCheckApiKey(ApiKeyType.OPENAI_API_KEY)}
-      </div>
-    `;
-  }
-
   // ============ Local Ollama server ============
   private renderOllamaSettings() {
     const updateServerSettings = (e: InputEvent, field: 'url') => {
@@ -379,9 +497,13 @@ export class ExperimenterDataEditor extends MobxLitElement {
     return html`
       <div class="section">
         <h3>Ollama API settings</h3>
+        <p class="description">
+          Run open-source models locally. Requires Ollama running on your
+          machine or network.
+        </p>
         <md-filled-text-field
           label="Server URL (please ensure URL is valid!)"
-          placeholder="http://example:80/api/chat"
+          placeholder="http://localhost:11434"
           .value=${data?.apiKeys.ollamaApiKey?.url ?? ''}
           @input=${(e: InputEvent) => updateServerSettings(e, 'url')}
         ></md-filled-text-field>

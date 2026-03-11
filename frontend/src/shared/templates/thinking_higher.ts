@@ -346,11 +346,12 @@ function getStageConfigs(): StageConfig[] {
       name: 'Morning Standup',
       descriptions: createStageTextConfig({
         primaryText:
-          "It's the morning standup. Marcus (UX), Alex (Tech Lead), and Sarah (PM) " +
-          'are here. Share your update and listen to your teammates. This is a casual ' +
-          'check-in — keep it brief.',
+          'You are a software developer starting work on a new onboarding form feature. ' +
+          "It's the morning standup — Marcus (UX Designer), Alex (Tech Lead), and Sarah " +
+          '(Project Manager) are here. Share your update and listen to your teammates. ' +
+          'Keep it brief and casual.',
         infoText:
-          'Scenario: You are a junior SDE starting work on a new onboarding form feature.',
+          'This is a warm-up conversation. You will have 1-on-1 follow-ups after standup.',
       }),
       timeLimitInMinutes: 5,
     }),
@@ -361,9 +362,11 @@ function getStageConfigs(): StageConfig[] {
       name: 'Stage 1 — Requirements',
       descriptions: createStageTextConfig({
         primaryText:
-          'Marcus is walking you through the onboarding form designs — ask the right questions.',
+          'Marcus (UX Designer) is walking you through the onboarding form designs. ' +
+          'Your goal is to understand the requirements clearly — ask questions about ' +
+          'edge cases, validation rules, and anything you need to start building.',
         infoText:
-          'Focus: requirements gathering, edge cases, understanding design intent.',
+          'Tip: Good developers ask clarifying questions before they start coding.',
       }),
       isTurnBasedChat: true,
       minNumberOfTurns: 2,
@@ -376,9 +379,10 @@ function getStageConfigs(): StageConfig[] {
       name: 'Stage 2 — Bug Report',
       descriptions: createStageTextConfig({
         primaryText:
-          "You've spotted a potential bug mid-build — flag it to Alex before it becomes a problem.",
-        infoText:
-          'Focus: root cause analysis, ownership, proactive problem-solving.',
+          'Alex (Tech Lead) has found a potential issue in the code and wants to ' +
+          'discuss it with you. Look at the problem, identify what went wrong, and ' +
+          'work together on a path forward.',
+        infoText: 'Tip: Think about root cause, not just symptoms.',
       }),
       isTurnBasedChat: true,
       minNumberOfTurns: 2,
@@ -391,9 +395,11 @@ function getStageConfigs(): StageConfig[] {
       name: 'Stage 3 — Timeline',
       descriptions: createStageTextConfig({
         primaryText:
-          "The fix will take extra time — Sarah needs to know what's changing and why.",
+          'Sarah (Project Manager) needs an update — the fix from the previous ' +
+          'conversation may affect the project timeline. Explain the situation ' +
+          'clearly in plain, non-technical language.',
         infoText:
-          'Focus: plain-language communication, ownership, clear timeline.',
+          'Tip: Focus on impact, timeline, and what you plan to do about it.',
       }),
       isTurnBasedChat: true,
       minNumberOfTurns: 2,
@@ -427,6 +433,38 @@ function getStageConfigs(): StageConfig[] {
           'your feedback. Your responses help us improve the experience.',
       }),
       questions: [
+        createMultipleChoiceSurveyQuestion({
+          id: 'experience-level',
+          questionTitle:
+            'What best describes your current level of professional software engineering experience?',
+          options: [
+            createMultipleChoiceItem({
+              id: 'student',
+              text: 'Student (no professional experience)',
+            }),
+            createMultipleChoiceItem({
+              id: 'entry',
+              text: 'Entry-level (0-1 years)',
+            }),
+            createMultipleChoiceItem({
+              id: 'junior',
+              text: 'Junior (1-3 years)',
+            }),
+            createMultipleChoiceItem({
+              id: 'mid',
+              text: 'Mid-level (3-6 years)',
+            }),
+            createMultipleChoiceItem({
+              id: 'senior',
+              text: 'Senior (6-10 years)',
+            }),
+            createMultipleChoiceItem({
+              id: 'staff-plus',
+              text: 'Staff+ / Principal (10+ years)',
+            }),
+          ],
+          displayType: MultipleChoiceDisplayType.RADIO,
+        }),
         createScaleSurveyQuestion({
           id: 'overall-experience',
           questionTitle:
@@ -516,7 +554,7 @@ function createMarcusMediator(): AgentMediatorTemplate {
     description: 'Friendly UX designer handing off onboarding form designs',
     isDefaultAddToCohort: true,
     defaultProfile: createParticipantProfileBase({
-      name: 'Marcus',
+      name: 'Marcus (UX Designer)',
       avatar: '🎨',
     }),
   });
@@ -568,7 +606,7 @@ function createAlexMediator(): AgentMediatorTemplate {
     description: 'Calm tech lead who found a validation bug during PR review',
     isDefaultAddToCohort: true,
     defaultProfile: createParticipantProfileBase({
-      name: 'Alex',
+      name: 'Alex (Tech Lead)',
       avatar: '💻',
     }),
   });
@@ -615,7 +653,7 @@ function createSarahMediator(): AgentMediatorTemplate {
     description: 'Friendly PM who needs clarity on a timeline delay',
     isDefaultAddToCohort: true,
     defaultProfile: createParticipantProfileBase({
-      name: 'Sarah',
+      name: 'Sarah (Project Manager)',
       avatar: '📋',
     }),
   });

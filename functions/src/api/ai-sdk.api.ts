@@ -94,8 +94,9 @@ const PROVIDER_REGISTRY: Record<string, ProviderFactory> = {
     const provider = createOpenAI({
       apiKey: config.openAIApiKey?.apiKey,
       baseURL: config.openAIApiKey?.baseUrl || undefined,
+      compatibility: 'compatible',
     });
-    return (modelId: string) => provider(modelId) as LanguageModel;
+    return (modelId: string) => provider.chat(modelId) as LanguageModel;
   },
   anthropic: (config) => {
     const provider = createAnthropic({

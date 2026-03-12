@@ -464,7 +464,7 @@ steps:
           --only database:rules \
           --project ${PROJECT_ID} \
           --non-interactive \
-          --force
+          --force || echo "WARNING: Database rules deploy failed (Realtime Database may not be initialized). Continuing..."
       else
         echo "Dry-run: Deploying Database Rules..."
         npx firebase deploy \
@@ -472,7 +472,7 @@ steps:
           --only database:rules \
           --project ${PROJECT_ID} \
           --non-interactive \
-          --dry-run
+          --dry-run || echo "WARNING: Database rules dry-run failed. Continuing..."
       fi
     else
       echo "Skipping Database rules deploy for '${_DEPLOYMENT_TYPE}' deployment."

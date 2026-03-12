@@ -265,6 +265,39 @@ function extractFieldsFromCorruptedJson(
 }
 
 /**
+ * Unwrap schema-echo pattern where model wraps actual values inside a
+ * JSON schema structure:
+ *   { "type": "object", "properties": { "response": "actual text", ... }, "required": [...] }
+ * Returns the properties object if the pattern is detected, otherwise the original.
+ */
+function unwrapSchemaEcho(parsed: unknown): unknown {
+  if (
+    parsed &&
+    typeof parsed === 'object' &&
+    !Array.isArray(parsed) &&
+    'type' in parsed &&
+    'properties' in parsed &&
+    (parsed as Record<string, unknown>).type === 'object' &&
+    typeof (parsed as Record<string, unknown>).properties === 'object'
+  ) {
+    const props = (parsed as Record<string, unknown>).properties as Record<
+      string,
+      unknown
+    >;
+    // Verify it's actual values (not schema definitions like { "type": "string" })
+    const values = Object.values(props);
+    const looksLikeSchemaDefinitions = values.every(
+      (v) => typeof v === 'object' && v !== null && 'type' in v,
+    );
+    if (!looksLikeSchemaDefinitions) {
+      console.log('Unwrapped schema-echo pattern from model output');
+      return props;
+    }
+  }
+  return parsed;
+}
+
+/**
  * Parse structured output from text.
  * Uses jsonrepair to handle markdown code blocks, malformed JSON, etc.
  */
@@ -317,7 +350,10 @@ export function parseStructuredOutputFromText(
       }
     }
 
-    return repaired as Record<string, unknown>;
+    // Unwrap schema-echo pattern: model wraps response values inside
+    // { "type": "object", "properties": { ...actual values... }, "required": [...] }
+    const unwrapped = unwrapSchemaEcho(repaired);
+    return unwrapped as Record<string, unknown>;
   } catch (e) {
     console.error('Strategy 2 (jsonrepair) JSON parse error:', e);
   }

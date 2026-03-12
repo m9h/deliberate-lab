@@ -496,7 +496,7 @@ steps:
           --only storage \
           --project ${PROJECT_ID} \
           --non-interactive \
-          --force
+          --force || echo "WARNING: Storage rules deploy failed (Firebase Storage may not be initialized). Continuing..."
       else
         echo "Dry-run: Deploying Storage Rules..."
         npx firebase deploy \
@@ -504,7 +504,7 @@ steps:
           --only storage \
           --project ${PROJECT_ID} \
           --non-interactive \
-          --dry-run
+          --dry-run || echo "WARNING: Storage rules dry-run failed. Continuing..."
       fi
     else
       echo "Skipping Storage rules deploy for '${_DEPLOYMENT_TYPE}' deployment."

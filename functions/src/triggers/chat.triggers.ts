@@ -1,6 +1,8 @@
 import {onDocumentCreated} from 'firebase-functions/v2/firestore';
 import {
   ChatMessage,
+  MediatorProfileExtended,
+  ParticipantProfileExtended,
   ParticipantStatus,
   StageKind,
   UserType,
@@ -78,8 +80,32 @@ export const onPublicChatMessageCreated = onDocumentCreated(
       stage.id,
       true,
     );
+
+    // Read the triggering message to check for name-based routing
+    const chatDoc = await app
+      .firestore()
+      .collection('experiments')
+      .doc(event.params.experimentId)
+      .collection('cohorts')
+      .doc(event.params.cohortId)
+      .collection('publicStageData')
+      .doc(event.params.stageId)
+      .collection('chats')
+      .doc(event.params.chatId)
+      .get();
+    const triggerMessage = chatDoc.exists
+      ? (chatDoc.data() as ChatMessage)
+      : null;
+
+    // Name-based routing: if a human message mentions a specific agent by name,
+    // only trigger that agent (skip unnecessary LLM calls for the others).
+    // This makes conversations like "Hi Marcus" feel natural and fast.
+    const mentionedMediators = triggerMessage
+      ? filterByNameMention(triggerMessage, mediators)
+      : mediators;
+
     await Promise.all(
-      mediators.map((mediator) =>
+      mentionedMediators.map((mediator) =>
         createAgentChatMessageFromPrompt(
           event.params.experimentId,
           event.params.cohortId,
@@ -96,8 +122,13 @@ export const onPublicChatMessageCreated = onDocumentCreated(
     const agentParticipants = allParticipants.filter(
       (p) => p.agentConfig && p.currentStatus === ParticipantStatus.IN_PROGRESS,
     );
+
+    const mentionedParticipants = triggerMessage
+      ? filterByNameMention(triggerMessage, agentParticipants)
+      : agentParticipants;
+
     await Promise.all(
-      agentParticipants.map((participant) =>
+      mentionedParticipants.map((participant) =>
         createAgentChatMessageFromPrompt(
           event.params.experimentId,
           event.params.cohortId,
@@ -217,3 +248,44 @@ export const onPrivateChatMessageCreated = onDocumentCreated(
     }
   },
 );
+
+// ************************************************************************* //
+// HELPER FUNCTIONS                                                          //
+// ************************************************************************* //
+
+/**
+ * Filter agents to only those mentioned by name in the message.
+ * If the message mentions specific agent names, only those agents are triggered.
+ * If no agent names are mentioned, all agents are triggered (default behavior).
+ *
+ * This avoids unnecessary LLM calls when a participant addresses a specific
+ * person (e.g., "Hi Marcus" or "Marcus, are you free?"), making the
+ * conversation feel more natural and responsive.
+ */
+function filterByNameMention<
+  T extends MediatorProfileExtended | ParticipantProfileExtended,
+>(message: ChatMessage, agents: T[]): T[] {
+  // Only apply routing for human participant messages
+  if (message.type !== UserType.PARTICIPANT) return agents;
+  // Don't route if there's only one agent
+  if (agents.length <= 1) return agents;
+
+  const msgLower = message.message.toLowerCase();
+
+  // Extract the first name (before any parenthetical like "(UX Designer)")
+  const getFirstName = (agent: T): string => {
+    const name = agent.name ?? '';
+    const parenIdx = name.indexOf('(');
+    const baseName = parenIdx > 0 ? name.substring(0, parenIdx).trim() : name;
+    return baseName.toLowerCase();
+  };
+
+  const mentioned = agents.filter((agent) => {
+    const firstName = getFirstName(agent);
+    return firstName.length > 0 && msgLower.includes(firstName);
+  });
+
+  // If specific agents were mentioned, only trigger those.
+  // Otherwise, trigger all agents (message was general, like "sounds good").
+  return mentioned.length > 0 ? mentioned : agents;
+}

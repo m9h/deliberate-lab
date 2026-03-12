@@ -61,8 +61,27 @@ const FEEDBACK_SURVEY_ID = 'feedback-survey';
 const TOS_LINES = [
   '**Welcome to Thinking Higher**',
   'This is a workplace simulation designed to help you practice higher-order thinking and communication skills. You will interact with AI-powered colleagues in realistic workplace scenarios.',
+  '**Your role**',
+  'You are a **junior software developer** who just joined the engineering team at a mid-size tech company. ' +
+    'Today is your first day working on a new **user onboarding form** feature. The form collects new user ' +
+    'information (name, email, etc.) and needs to ship by end of sprint (3 days from now). ' +
+    'You will be building the form from UX designs that are already completed.',
+  '**Your team**',
+  '• **Marcus** 🎨 (UX Designer) — Designed the onboarding form. Friendly and collaborative. He will walk you through his designs.\n' +
+    '• **Alex** 💻 (Tech Lead) — Reviews your code and mentors you. Calm and experienced. He will flag any issues he finds.\n' +
+    '• **Sarah** 📋 (Project Manager) — Tracks the project timeline. Marketing is waiting on this feature. She needs plain-language status updates.',
   '**What to expect**',
-  'You will participate in a team standup, then have three 1-on-1 conversations with colleagues: gathering requirements from a UX designer, discussing a bug with your tech lead, and communicating a timeline change to your project manager. At the end, you will receive an assessment of your performance.',
+  'The simulation has four conversations:\n' +
+    "1. **Morning Standup** (group chat) — A quick team sync. Give your update: you're starting the onboarding form build today. Listen to what your teammates are working on. Keep it brief.\n" +
+    '2. **1-on-1 with Marcus** — He walks you through the designs and requirements. Ask clarifying questions.\n' +
+    '3. **1-on-1 with Alex** — He found something in your code during review. Discuss the issue and how to fix it.\n' +
+    '4. **1-on-1 with Sarah** — She needs a status update on the timeline. Explain any changes clearly in non-technical language.\n\n' +
+    'After the conversations, you will receive a skills assessment.',
+  '**Tips for success**',
+  "• Ask clarifying questions — don't assume you understand everything\n" +
+    '• Think about edge cases and implications\n' +
+    '• Adapt your communication style to your audience\n' +
+    "• Be honest about what you know and don't know",
   '**Data usage**',
   'Your conversations and responses will be recorded for research and assessment purposes. All data is stored securely and used solely to evaluate and improve the simulation.',
   '**Voluntary participation**',
@@ -346,12 +365,17 @@ function getStageConfigs(): StageConfig[] {
       name: 'Morning Standup',
       descriptions: createStageTextConfig({
         primaryText:
-          'You are a software developer starting work on a new onboarding form feature. ' +
-          "It's the morning standup — Marcus (UX Designer), Alex (Tech Lead), and Sarah " +
-          '(Project Manager) are here. Share your update and listen to your teammates. ' +
-          'Keep it brief and casual.',
+          "It's 9:30 AM — time for the daily standup. Your team is here: " +
+          'Marcus (UX Designer 🎨), Alex (Tech Lead 💻), and Sarah (Project Manager 📋). ' +
+          'This is your first standup on the onboarding form project.\n\n' +
+          "**Your update:** You're starting the build today using Marcus's designs. " +
+          "You're planning to begin with the form layout and validation logic.\n\n" +
+          "Listen to your teammates' updates and respond naturally. " +
+          'Keep it brief — standups are quick syncs, not long discussions.',
         infoText:
-          'This is a warm-up conversation. You will have 1-on-1 follow-ups after standup.',
+          'After standup, you will have 1-on-1 follow-ups with each teammate. ' +
+          "If someone mentions wanting to sync, just acknowledge it — you'll " +
+          'connect with them in the next stages.',
       }),
       timeLimitInMinutes: 5,
     }),

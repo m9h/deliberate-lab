@@ -273,7 +273,9 @@ export function parseStructuredOutputFromText(
 ): Record<string, unknown> | null {
   // Convert literal \n sequences to actual newlines
   const preprocessed = text.replace(/\\n/g, '\n');
-  const trimmed = preprocessed.trim();
+  // Strip thinking tokens (e.g., Qwen's <think>...</think> blocks)
+  const withoutThinking = preprocessed.replace(/<think>[\s\S]*?<\/think>/g, '');
+  const trimmed = withoutThinking.trim();
 
   // Strategy 1: Handle "json\n{...}" prefix (jsonrepair misinterprets this as array)
   const jsonPrefixMatch = trimmed.match(/^json\s*\n(\{[\s\S]*\})$/);

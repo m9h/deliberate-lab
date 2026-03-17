@@ -340,6 +340,12 @@ export async function getAgentChatMessage(
     }
   }
 
+  // Strip thinking tokens (e.g., Qwen's <think>...</think>) from the message.
+  // These are already stripped during structured output JSON parsing, but if
+  // parsing failed or structured output is disabled, the raw text may still
+  // contain them.
+  message = message.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
   // No text and no files = failure
   if (!response.text && (!response.files || response.files.length === 0)) {
     return {message: null, success: false};

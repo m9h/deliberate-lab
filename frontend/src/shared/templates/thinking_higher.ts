@@ -3,9 +3,9 @@ import {
   createAgentMediatorPersonaConfig,
   createAgentParticipantPersonaConfig,
   createChatPromptConfig,
-  createChatStage,
   createExperimentConfig,
   createExperimentTemplate,
+  createInfoStage,
   createMetadataConfig,
   createParticipantProfileBase,
   createPrivateChatStage,
@@ -47,7 +47,9 @@ export const THINKING_HIGHER_METADATA = createMetadataConfig({
 // Stage IDs
 // ****************************************************************************
 
-const GROUP_CHAT_ID = 'group-standup';
+const TEAM_MEETING_WATCH_ID = 'team-meeting-watch';
+const TEAM_MEETING_RESPOND_ID = 'team-meeting-respond';
+const TEAM_MEETING_CHECK_ID = 'team-meeting-check';
 const MARCUS_CHAT_ID = 'chat-marcus';
 const ALEX_CHAT_ID = 'chat-alex';
 const SARAH_CHAT_ID = 'chat-sarah';
@@ -71,8 +73,8 @@ const TOS_LINES = [
     '• **Alex** 💻 (Tech Lead) — Reviews your code and mentors you. Calm and experienced. He will flag any issues he finds.\n' +
     '• **Sarah** 📋 (Project Manager) — Tracks the project timeline. Marketing is waiting on this feature. She needs plain-language status updates.',
   '**What to expect**',
-  'The simulation has four conversations:\n' +
-    "1. **Morning Standup** (group chat) — A quick team sync. Give your update: you're starting the onboarding form build today. Listen to what your teammates are working on. Keep it brief.\n" +
+  'The simulation has several stages:\n' +
+    '1. **Team Meeting** — Watch a team standup, respond to a question from Sarah (PM), then complete a comprehension check.\n' +
     '2. **1-on-1 with Marcus** — He walks you through the designs and requirements. Ask clarifying questions.\n' +
     '3. **1-on-1 with Alex** — He found something in your code during review. Discuss the issue and how to fix it.\n' +
     '4. **1-on-1 with Sarah** — She needs a status update on the timeline. Explain any changes clearly in non-technical language.\n\n' +
@@ -162,37 +164,26 @@ const SARAH_PERSONA =
   'terms — not with frustration, more like "sorry, can you say that in non-code language?". ' +
   'After 3-4 exchanges, wrap up warmly once you have a clear answer.';
 
-const GROUP_STANDUP_MARCUS =
+const TEAM_MEETING_SARAH_PROMPT =
   SYSTEM_BASE +
   '\n\n' +
-  'You are Marcus, a UX designer. This is a morning standup. Give a brief update: ' +
-  'you finished the onboarding form designs and are ready to hand them off to the dev ' +
-  "team. You're excited about the design and mention you want to sync with the junior " +
-  'SDE (the participant) about the handoff today. Keep it to 1-2 sentences per message. ' +
-  'Be natural and casual — this is a standup, not a formal meeting.';
-
-const GROUP_STANDUP_ALEX =
-  SYSTEM_BASE +
-  '\n\n' +
-  'You are Alex, the tech lead. This is a morning standup. Give a brief update: you ' +
-  "are reviewing PRs today and will be looking at the onboarding form code later. You're " +
-  'also working on some infrastructure tasks. Keep it to 1-2 sentences per message. ' +
-  'Be natural and collegial. If the junior SDE (the participant) shares their update, ' +
-  'react supportively.';
-
-const GROUP_STANDUP_SARAH =
-  SYSTEM_BASE +
-  '\n\n' +
-  'You are Sarah, the project manager. This is a morning standup. Give a brief update: ' +
-  'marketing is asking about the onboarding form launch timeline, and you want to make sure ' +
-  'the team is on track for end-of-sprint delivery. Keep it to 1-2 sentences per message. ' +
-  'Be warm but focused. Ask if there are any blockers the team should know about.';
+  'You are Sarah, the project manager. The team just finished a standup where Marcus ' +
+  'shared user research findings for the onboarding module (asset category selection ' +
+  'upfront, clear detail labels at each step, and save-and-return — though Alex flagged ' +
+  'save-and-return as out of scope for this sprint). Alex also announced that the ' +
+  'participant (a junior SDE in their second week) will be taking the lead on building ' +
+  'the onboarding module, and you asked them to sync with Marcus.\n\n' +
+  'You just asked the participant if they have any questions before wrapping up. ' +
+  'Respond warmly and helpfully to whatever they ask or say. If they ask about the ' +
+  'meeting topics, answer based on what was discussed. Keep responses to 1-2 sentences. ' +
+  'After one exchange, wrap up naturally — something like "Great, reach out anytime ' +
+  'if something comes up!"';
 
 const EVALUATOR_PROMPT =
   'You are an expert evaluator using the ELIPSS (Enhancing Learning by Improving Process ' +
   'Skills in STEM) rubric framework. You have observed a participant complete a workplace ' +
   'simulation with four parts:\n\n' +
-  '1. A group standup with Marcus (UX), Alex (Tech Lead), and Sarah (PM)\n' +
+  '1. A team meeting (observed a scripted standup, responded to Sarah, completed a comprehension check)\n' +
   '2. A 1-on-1 with Marcus — requirements gathering for an onboarding form\n' +
   '3. A 1-on-1 with Alex — discussing a validation bug (regex that rejects international names)\n' +
   '4. A 1-on-1 with Sarah — communicating a timeline delay to a non-technical PM\n\n' +
@@ -326,8 +317,8 @@ const SUBJECT_AGENT_PROMPT =
   'in workplace conversations with your colleagues. You are generally competent but still ' +
   'learning — you ask reasonable questions, you sometimes miss edge cases, and you are ' +
   "honest about what you do and don't know.\n\n" +
-  'In the group standup, give a brief update: you are starting work on the onboarding ' +
-  "form today and plan to begin building from Marcus's designs.\n\n" +
+  'After the team meeting, when Sarah asks if you have questions, ask a brief, ' +
+  'relevant question about the onboarding module or your upcoming sync with Marcus.\n\n' +
   'In 1-on-1 conversations:\n' +
   '- With Marcus (UX): Ask clarifying questions about the designs. Try to understand ' +
   'requirements, but you might not catch every edge case on your own.\n' +
@@ -359,28 +350,112 @@ function getStageConfigs(): StageConfig[] {
       profileType: ProfileType.DEFAULT,
     }),
 
-    // 3. Group standup chat
-    createChatStage({
-      id: GROUP_CHAT_ID,
-      name: 'Morning Standup',
+    // 3. Team Meeting — Watch (scripted meeting)
+    createInfoStage({
+      id: TEAM_MEETING_WATCH_ID,
+      name: 'Team Meeting — Watch',
       descriptions: createStageTextConfig({
         primaryText:
-          "It's 9:30 AM — time for the daily standup. Your team is here: " +
-          'Marcus (UX Designer 🎨), Alex (Tech Lead 💻), and Sarah (Project Manager 📋). ' +
-          'This is your first standup on the onboarding form project.\n\n' +
-          "**Your update:** You're starting the build today using Marcus's designs. " +
-          "You're planning to begin with the form layout and validation logic.\n\n" +
-          "Listen to your teammates' updates and respond naturally. " +
-          'Keep it brief — standups are quick syncs, not long discussions.',
+          "It's Monday morning at Vela, an IT asset management company. You're a " +
+          '**junior SDE in your second week**. The team holds a meeting today to discuss ' +
+          'the customer onboarding flow that **you will be building this sprint**.\n\n' +
+          "**Who's in the room:** Sarah (Project Manager), Marcus (UX Designer), " +
+          'Alex (Tech Lead), and you (Junior SDE).\n\n' +
+          '**Your goal:** Listen carefully and understand the project landscape — ' +
+          "what's being built, what's decided, and what your role is.",
         infoText:
-          'After standup, you will have 1-on-1 follow-ups with each teammate. ' +
-          "If someone mentions wanting to sync, just acknowledge it — you'll " +
-          'connect with them in the next stages.',
+          'Pay attention to what each person knows. ' +
+          'Make sure you understand what dev decisions are made in the end.',
       }),
-      timeLimitInMinutes: 5,
+      infoLines: [
+        "**SARAH:** Alright, let's keep this quick. Marcus, you wanted to kick us off today?",
+        "**MARCUS:** Yeah — so I finished up six user interviews with IT admins for designing the Vela platform onboarding module over the past week. Big takeaway: they need to see and choose what they're tracking for the company — software licenses, laptops, other devices — before the form asks for any details. They won't fill in what they didn't opt into.",
+        '**MARCUS:** I also think we need to be really clear at each onboarding step about what level of detail the form is asking for — if not, people just bail.',
+        "**SARAH:** That tracks with what I'm hearing from the sales side too. What else?",
+        "**MARCUS:** One more thing — three of the six admins said they wouldn't have all their inventory info on hand during signup. So ideally, they could save progress and come back later.",
+        "**ALEX:** The first two are fine — we can build that. The save-and-return piece is a different story. Persisting draft state server-side isn't trivial. I don't think we can scope that into one sprint without it becoming the whole sprint.",
+        "**SARAH:** Noted. Let's park that and focus on the first two. Alex, anything else from you?",
+        '**ALEX:** Just one thing — I want to flag for the team that you are going to be taking the lead on building the onboarding module.',
+        "**SARAH:** Great. Welcome to the project officially. Please sync later with Marcus to discuss the design and development in detail for this week's sprint.",
+        "**MARCUS:** Sure thing — let's talk tomorrow after I have the prototype fleshed out!",
+      ],
     }),
 
-    // 4. Private chat with Marcus (Requirements)
+    // 4. Team Meeting — Respond (Sarah asks if student has questions)
+    createPrivateChatStage({
+      id: TEAM_MEETING_RESPOND_ID,
+      name: 'Team Meeting — Respond',
+      descriptions: createStageTextConfig({
+        primaryText:
+          'Sarah is giving you a chance to ask questions or add anything ' +
+          'before the meeting wraps up.',
+        infoText: 'Keep it brief — 1-2 sentences is plenty.',
+      }),
+      isTurnBasedChat: true,
+      minNumberOfTurns: 1,
+      maxNumberOfTurns: 3,
+    }),
+
+    // 5. Team Meeting — Comprehension Check
+    createSurveyStage({
+      id: TEAM_MEETING_CHECK_ID,
+      name: 'Team Meeting — Check',
+      descriptions: createStageTextConfig({
+        primaryText:
+          "Before your design sync with Marcus, let's make sure you caught " +
+          'the key points from the meeting.',
+      }),
+      questions: [
+        createMultipleChoiceSurveyQuestion({
+          id: 'meeting-q1-onboarding-goal',
+          questionTitle:
+            'What is the main goal of the onboarding flow the team is building?',
+          options: [
+            createMultipleChoiceItem({
+              id: 'q1-a',
+              text: "Help IT admins manage their team's daily tasks inside Vela",
+            }),
+            createMultipleChoiceItem({
+              id: 'q1-b',
+              text: 'Get a new IT admin from signing up to selecting what they need to monitor',
+            }),
+            createMultipleChoiceItem({
+              id: 'q1-c',
+              text: "Walk new employees through Vela's features after their company signs up",
+            }),
+          ],
+          displayType: MultipleChoiceDisplayType.RADIO,
+        }),
+        createMultipleChoiceSurveyQuestion({
+          id: 'meeting-q2-alex-pushback',
+          questionTitle:
+            "Alex pushed back on one of Marcus's three findings. Which one and why?",
+          options: [
+            createMultipleChoiceItem({
+              id: 'q2-a',
+              text: 'Asset category selection upfront — too complex to build in one sprint',
+            }),
+            createMultipleChoiceItem({
+              id: 'q2-b',
+              text: "Clear detail labels at each step — Marcus didn't have enough user data to support it",
+            }),
+            createMultipleChoiceItem({
+              id: 'q2-c',
+              text: 'Save and return (partial completion) — persisting draft state server-side is a non-trivial lift for a one-week sprint',
+            }),
+          ],
+          displayType: MultipleChoiceDisplayType.RADIO,
+        }),
+        createTextSurveyQuestion({
+          id: 'meeting-q3-role-responsibility',
+          questionTitle:
+            'What is your role and responsibility going into the sync with Marcus?',
+          maxCharCount: 500,
+        }),
+      ],
+    }),
+
+    // 6. Private chat with Marcus (Requirements)
     createPrivateChatStage({
       id: MARCUS_CHAT_ID,
       name: 'Stage 1 — Requirements',
@@ -585,24 +660,6 @@ function createMarcusMediator(): AgentMediatorTemplate {
 
   const promptMap: Record<string, MediatorPromptConfig> = {};
 
-  // Marcus in group standup
-  promptMap[GROUP_CHAT_ID] = createChatPromptConfig(
-    GROUP_CHAT_ID,
-    StageKind.CHAT,
-    {
-      prompt: createDefaultPromptFromText(GROUP_STANDUP_MARCUS, GROUP_CHAT_ID),
-      chatSettings: createAgentChatSettings({
-        wordsPerMinute: 200,
-        canSelfTriggerCalls: false,
-        maxResponses: 3,
-        initialMessage:
-          'Morning everyone! Quick update from my side — I wrapped up the onboarding ' +
-          'form designs yesterday. Pretty happy with how they turned out. I want to ' +
-          'sync with our new dev on the handoff today so we can get building.',
-      }),
-    },
-  );
-
   // Marcus in 1-on-1
   promptMap[MARCUS_CHAT_ID] = createChatPromptConfig(
     MARCUS_CHAT_ID,
@@ -637,20 +694,6 @@ function createAlexMediator(): AgentMediatorTemplate {
 
   const promptMap: Record<string, MediatorPromptConfig> = {};
 
-  // Alex in group standup
-  promptMap[GROUP_CHAT_ID] = createChatPromptConfig(
-    GROUP_CHAT_ID,
-    StageKind.CHAT,
-    {
-      prompt: createDefaultPromptFromText(GROUP_STANDUP_ALEX, GROUP_CHAT_ID),
-      chatSettings: createAgentChatSettings({
-        wordsPerMinute: 150,
-        canSelfTriggerCalls: false,
-        maxResponses: 3,
-      }),
-    },
-  );
-
   // Alex in 1-on-1
   promptMap[ALEX_CHAT_ID] = createChatPromptConfig(
     ALEX_CHAT_ID,
@@ -684,16 +727,21 @@ function createSarahMediator(): AgentMediatorTemplate {
 
   const promptMap: Record<string, MediatorPromptConfig> = {};
 
-  // Sarah in group standup
-  promptMap[GROUP_CHAT_ID] = createChatPromptConfig(
-    GROUP_CHAT_ID,
-    StageKind.CHAT,
+  // Sarah in team meeting respond
+  promptMap[TEAM_MEETING_RESPOND_ID] = createChatPromptConfig(
+    TEAM_MEETING_RESPOND_ID,
+    StageKind.PRIVATE_CHAT,
     {
-      prompt: createDefaultPromptFromText(GROUP_STANDUP_SARAH, GROUP_CHAT_ID),
+      prompt: createDefaultPromptFromText(
+        TEAM_MEETING_SARAH_PROMPT,
+        TEAM_MEETING_RESPOND_ID,
+      ),
       chatSettings: createAgentChatSettings({
         wordsPerMinute: 180,
         canSelfTriggerCalls: false,
         maxResponses: 3,
+        initialMessage:
+          'Do you have any questions or anything to add before we wrap up?',
       }),
     },
   );
@@ -770,16 +818,19 @@ function createSubjectAgent(): AgentParticipantTemplate {
 
   const promptMap: Record<string, ParticipantPromptConfig> = {};
 
-  // Subject in group standup
-  promptMap[GROUP_CHAT_ID] = createChatPromptConfig(
-    GROUP_CHAT_ID,
-    StageKind.CHAT,
+  // Subject in team meeting respond
+  promptMap[TEAM_MEETING_RESPOND_ID] = createChatPromptConfig(
+    TEAM_MEETING_RESPOND_ID,
+    StageKind.PRIVATE_CHAT,
     {
-      prompt: createDefaultPromptFromText(SUBJECT_AGENT_PROMPT, GROUP_CHAT_ID),
+      prompt: createDefaultPromptFromText(
+        SUBJECT_AGENT_PROMPT,
+        TEAM_MEETING_RESPOND_ID,
+      ),
       chatSettings: createAgentChatSettings({
         wordsPerMinute: 150,
         canSelfTriggerCalls: false,
-        maxResponses: 3,
+        maxResponses: 2,
       }),
     },
   );

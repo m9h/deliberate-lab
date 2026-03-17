@@ -27,6 +27,8 @@ import {
 } from '../../shared/templates/quickstart_group_chat';
 import {getQuickstartPrivateChatTemplate} from '../../shared/templates/quickstart_private_chat';
 import {getThinkingHigherTemplate} from '../../shared/templates/thinking_higher';
+import {getKnightsFallTemplate} from '../../shared/templates/knights_fall';
+import {getShipOrFixTemplate} from '../../shared/templates/ship_or_fix';
 
 import {styles} from './home_gallery.scss';
 
@@ -270,6 +272,26 @@ export class QuickStartGallery extends MobxLitElement {
           >
             <pr-icon icon="psychology" color="neutral" size="large"></pr-icon>
             <div>Thinking Higher<br />workplace sim</div>
+          </div>
+          <div
+            class="quick-start-card"
+            @click=${() => {
+              this.routerService.navigate(Pages.EXPERIMENT_CREATE);
+              this.experimentEditor.loadTemplate(getKnightsFallTemplate());
+            }}
+          >
+            <pr-icon icon="warning" color="neutral" size="large"></pr-icon>
+            <div>Knight's Fall<br />incident response</div>
+          </div>
+          <div
+            class="quick-start-card"
+            @click=${() => {
+              this.routerService.navigate(Pages.EXPERIMENT_CREATE);
+              this.experimentEditor.loadTemplate(getShipOrFixTemplate());
+            }}
+          >
+            <pr-icon icon="balance" color="neutral" size="large"></pr-icon>
+            <div>Ship or Fix<br />product deliberation</div>
           </div>
         </div>
       </div>
